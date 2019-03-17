@@ -94,6 +94,7 @@ public class CacheBuilder {
     Cache cache = newBaseCacheInstance(implementation, id);
     setCacheProperties(cache);
     // issue #352, do not apply decorators to custom caches
+    // only apply decorators to perpetualCache
     if (PerpetualCache.class.equals(cache.getClass())) {
       for (Class<? extends Cache> decorator : decorators) {
         cache = newCacheDecoratorInstance(decorator, cache);
@@ -106,6 +107,7 @@ public class CacheBuilder {
     return cache;
   }
 
+  //set default cache type and default decorator
   private void setDefaultImplementations() {
     if (implementation == null) {
       implementation = PerpetualCache.class;
@@ -149,6 +151,8 @@ public class CacheBuilder {
           Class<?> type = metaCache.getSetterType(name);
           if (String.class == type) {
             metaCache.setValue(name, value);
+            //1.type conversion
+            //2.set cache instance by setter
           } else if (int.class == type
               || Integer.class == type) {
             metaCache.setValue(name, Integer.valueOf(value));

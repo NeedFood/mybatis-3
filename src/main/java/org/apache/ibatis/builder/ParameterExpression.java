@@ -73,7 +73,7 @@ public class ParameterExpression extends HashMap<String, String> {
 
   private int skipWS(String expression, int p) {
     for (int i = p; i < expression.length(); i++) {
-      if (expression.charAt(i) > 0x20) {
+      if (expression.charAt(i) > 0x20) { //0x20=space
         return i;
       }
     }

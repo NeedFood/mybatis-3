@@ -25,9 +25,13 @@ import org.apache.ibatis.session.Configuration;
  */
 public class WhereSqlNode extends TrimSqlNode {
 
+  /**
+   * 前缀列表
+   */
   private static List<String> prefixList = Arrays.asList("AND ","OR ","AND\n", "OR\n", "AND\r", "OR\r", "AND\t", "OR\t");
 
   public WhereSqlNode(Configuration configuration, SqlNode contents) {
+    //调用父类的构造方法
     super(configuration, contents, "WHERE", prefixList, null, null);
   }
 

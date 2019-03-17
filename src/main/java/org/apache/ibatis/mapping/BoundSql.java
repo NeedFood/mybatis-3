@@ -35,10 +35,25 @@ import org.apache.ibatis.session.Configuration;
  */
 public class BoundSql {
 
+  /**
+   * 一个完整的sql,可能会包含?占位符
+   */
   private final String sql;
+  /**
+   * 参数映射列表,sql中的每一个#{xxx}占位符都会被解析成相对的ParameterMappping对象
+   */
   private final List<ParameterMapping> parameterMappings;
+  /**
+   * 运行时参数,及用户传入的参数,比如Article对象,或是其他的参数
+   */
   private final Object parameterObject;
+  /**
+   * 附加参数列表,用于存储一些额外的信息,比如datebaseId等
+   */
   private final Map<String, Object> additionalParameters;
+  /**
+   * additionalParameters的元信息对象
+   */
   private final MetaObject metaParameters;
 
   public BoundSql(Configuration configuration, String sql, List<ParameterMapping> parameterMappings, Object parameterObject) {

@@ -110,6 +110,13 @@ public class MapperBuilderAssistant extends BaseBuilder {
     try {
       unresolvedCacheRef = true;
       Cache cache = configuration.getCache(namespace);
+      /*
+      * 若未查找到缓存实例，此处抛出异常。这里存在两种情况导致未查找到
+      * cache 实例，分别如下：
+      *     1.使用者在 <cache-ref> 中配置了一个不存在的命名空间，
+      *       导致无法找到 cache 实例
+      *     2.使用者所引用的缓存实例还未创建
+      */
       if (cache == null) {
         throw new IncompleteElementException("No cache for namespace '" + namespace + "' could be found.");
       }
@@ -128,6 +135,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       boolean readWrite,
       boolean blocking,
       Properties props) {
+    //create cache instance by creator model
     Cache cache = new CacheBuilder(currentNamespace)
         .implementation(valueOrDefault(typeClass, PerpetualCache.class))
         .addDecorator(valueOrDefault(evictionClass, LruCache.class))
@@ -137,7 +145,9 @@ public class MapperBuilderAssistant extends BaseBuilder {
         .blocking(blocking)
         .properties(props)
         .build();
+    //add cache into configuration
     configuration.addCache(cache);
+    //set
     currentCache = cache;
     return cache;
   }
@@ -180,6 +190,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       Discriminator discriminator,
       List<ResultMapping> resultMappings,
       Boolean autoMapping) {
+    //为ResultMap的id和extend 属性值拼接命名空间
     id = applyCurrentNamespace(id, false);
     extend = applyCurrentNamespace(extend, true);
 
@@ -191,6 +202,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
       List<ResultMapping> extendedResultMappings = new ArrayList<>(resultMap.getResultMappings());
       extendedResultMappings.removeAll(resultMappings);
       // Remove parent constructor if this resultMap declares a constructor.
+      //检测当前resultMappings集合中是否包含CONSTRUCTOR标志的元素
       boolean declaresConstructor = false;
       for (ResultMapping resultMapping : resultMappings) {
         if (resultMapping.getFlags().contains(ResultFlag.CONSTRUCTOR)) {
@@ -198,6 +210,8 @@ public class MapperBuilderAssistant extends BaseBuilder {
           break;
         }
       }
+      //如果当前<ResultMap>节点包含<constructor>子节点
+      //则将拓展ResultMapping集合中的包含CONSTRUCTOR标志元素移除
       if (declaresConstructor) {
         Iterator<ResultMapping> extendedResultMappingsIter = extendedResultMappings.iterator();
         while (extendedResultMappingsIter.hasNext()) {
@@ -206,6 +220,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
           }
         }
       }
+      //将拓展extendResultMappings集合合并到当前resultMappings集合中
       resultMappings.addAll(extendedResultMappings);
     }
     ResultMap resultMap = new ResultMap.Builder(configuration, id, type, resultMappings, autoMapping)

@@ -90,12 +90,17 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   public void parse() {
+    //check resource is loaded
     if (!configuration.isResourceLoaded(resource)) {
+      //explain mapper node
       configurationElement(parser.evalNode("*[local-name()='mapper']"));
+      //add resource in to loadedResource
       configuration.addLoadedResource(resource);
+      //bind mapper interface by namespace
       bindMapperForNamespace();
     }
-
+    //explain unfinished node
+    //1.尝试解析失败ResultMaps CacheRefs Statements 成功解析则移除 否则不进行任何操作 下一个加载的mapper文件再进进行解析
     parsePendingResultMaps();
     parsePendingCacheRefs();
     parsePendingStatements();
@@ -105,6 +110,10 @@ public class XMLMapperBuilder extends BaseBuilder {
     return sqlFragments.get(refid);
   }
 
+  /**
+   * 解析mapper中的sql
+   * @param context
+   */
   private void configurationElement(XNode context) {
     try {
       String namespace = context.getStringAttribute("namespace");
@@ -112,23 +121,34 @@ public class XMLMapperBuilder extends BaseBuilder {
         throw new BuilderException("Mapper's namespace cannot be empty");
       }
       builderAssistant.setCurrentNamespace(namespace);
+      //analysis cacheRef node
       cacheRefElement(context.evalNode("*[local-name()='cache-ref']"));
+      //analysis cache node
       cacheElement(context.evalNode("*[local-name()='cache']"));
+      //analysis parameterMap node
       parameterMapElement(context.evalNodes("*[local-name()='parameterMap']"));
+      //analysis resultMap node
       resultMapElements(context.evalNodes("*[local-name()='resultMap']"));
+      //analysis sql node
       sqlElement(context.evalNodes("*[local-name()='sql']"));
+      //analysis sql
       buildStatementFromContext(context.evalNodes("*[local-name()='select' or local-name()='insert' or local-name()='update' or local-name()='delete']"));
     } catch (Exception e) {
       throw new BuilderException("Error parsing Mapper XML. The XML location is '" + resource + "'. Cause: " + e, e);
     }
   }
 
+  /**
+   * 解析sql列表
+   * @param list
+   */
   private void buildStatementFromContext(List<XNode> list) {
     if (configuration.getDatabaseId() != null) {
       buildStatementFromContext(list, configuration.getDatabaseId());
     }
     buildStatementFromContext(list, null);
   }
+
 
   private void buildStatementFromContext(List<XNode> list, String requiredDatabaseId) {
     for (XNode context : list) {
@@ -189,6 +209,7 @@ public class XMLMapperBuilder extends BaseBuilder {
   private void cacheRefElement(XNode context) {
     if (context != null) {
       configuration.addCacheRef(builderAssistant.getCurrentNamespace(), context.getStringAttribute("namespace"));
+      //create cacheRefResolver instance
       CacheRefResolver cacheRefResolver = new CacheRefResolver(builderAssistant, context.getStringAttribute("namespace"));
       try {
         cacheRefResolver.resolveCacheRef();
@@ -254,6 +275,7 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   private ResultMap resultMapElement(XNode resultMapNode, List<ResultMapping> additionalResultMappings, Class<?> enclosingType) throws Exception {
+    //get resultMap属性
     ErrorContext.instance().activity("processing " + resultMapNode.getValueBasedIdentifier());
     String id = resultMapNode.getStringAttribute("id",
         resultMapNode.getValueBasedIdentifier());
@@ -263,6 +285,7 @@ public class XMLMapperBuilder extends BaseBuilder {
                 resultMapNode.getStringAttribute("javaType"))));
     String extend = resultMapNode.getStringAttribute("extends");
     Boolean autoMapping = resultMapNode.getBooleanAttribute("autoMapping");
+    //解析resultMap对应的类型
     Class<?> typeClass = resolveClass(type);
     if (typeClass == null) {
       typeClass = inheritEnclosingType(resultMapNode, enclosingType);
@@ -271,6 +294,7 @@ public class XMLMapperBuilder extends BaseBuilder {
     List<ResultMapping> resultMappings = new ArrayList<>();
     resultMappings.addAll(additionalResultMappings);
     List<XNode> resultChildren = resultMapNode.getChildren();
+    // traverse resultMap child node, build ResultMapping object
     for (XNode resultChild : resultChildren) {
       if ("constructor".equals(resultChild.getName())) {
         processConstructorElement(resultChild, typeClass, resultMappings);
@@ -284,8 +308,10 @@ public class XMLMapperBuilder extends BaseBuilder {
         resultMappings.add(buildResultMappingFromContext(resultChild, typeClass, flags));
       }
     }
+    //create ResultMap resolver
     ResultMapResolver resultMapResolver = new ResultMapResolver(builderAssistant, id, typeClass, extend, discriminator, resultMappings, autoMapping);
     try {
+      //build ResultMap object by information which was get before.
       return resultMapResolver.resolve();
     } catch (IncompleteElementException  e) {
       configuration.addIncompleteResultMap(resultMapResolver);
@@ -336,6 +362,7 @@ public class XMLMapperBuilder extends BaseBuilder {
   }
 
   private void sqlElement(List<XNode> list) {
+      //如果dataBaseId不为空,sqlElement会被执行两次,第一次解析带databaseId的sql,第二次解析不带的
     if (configuration.getDatabaseId() != null) {
       sqlElement(list, configuration.getDatabaseId());
     }
@@ -344,8 +371,10 @@ public class XMLMapperBuilder extends BaseBuilder {
 
   private void sqlElement(List<XNode> list, String requiredDatabaseId) {
     for (XNode context : list) {
+        //获取id和dataBaseId
       String databaseId = context.getStringAttribute("databaseId");
       String id = context.getStringAttribute("id");
+      //id = currentNamespace + "." + id
       id = builderAssistant.applyCurrentNamespace(id, false);
       if (databaseIdMatchesCurrent(id, databaseId, requiredDatabaseId)) {
         sqlFragments.put(id, context);
@@ -355,14 +384,17 @@ public class XMLMapperBuilder extends BaseBuilder {
   
   private boolean databaseIdMatchesCurrent(String id, String databaseId, String requiredDatabaseId) {
     if (requiredDatabaseId != null) {
+        //当前baseId和目标baseId不一致时，返回false
       if (!requiredDatabaseId.equals(databaseId)) {
         return false;
       }
     } else {
+        //目标databaseId为空，当前baseId不为空。两者不一致，返回false
       if (databaseId != null) {
         return false;
       }
       // skip this fragment if there is a previous one with a not null databaseId
+        //如果当前<sql>节点与之前的<sql>节点重复，且先前节点databaseId不为空。则忽略当前节点，并返回会false
       if (this.sqlFragments.containsKey(id)) {
         XNode context = this.sqlFragments.get(id);
         if (context.getStringAttribute("databaseId") != null) {

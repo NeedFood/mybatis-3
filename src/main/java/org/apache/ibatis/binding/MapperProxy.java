@@ -48,13 +48,19 @@ public class MapperProxy<T> implements InvocationHandler, Serializable {
     try {
       if (Object.class.equals(method.getDeclaringClass())) {
         return method.invoke(this, args);
+        /**
+         * 支持1.8新特性
+         * https://github.com/mybatis/mybatis-3/issues/709
+         */
       } else if (isDefaultMethod(method)) {
         return invokeDefaultMethod(proxy, method, args);
       }
     } catch (Throwable t) {
       throw ExceptionUtil.unwrapThrowable(t);
     }
+    //1.从缓存中获取MapperMethod对象，若未命中缓存则创建MapperMethod对象
     final MapperMethod mapperMethod = cachedMapperMethod(method);
+    //调用execute方法执行
     return mapperMethod.execute(sqlSession, args);
   }
 

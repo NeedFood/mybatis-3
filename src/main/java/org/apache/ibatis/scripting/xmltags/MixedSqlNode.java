@@ -19,6 +19,7 @@ import java.util.List;
 
 /**
  * @author Clinton Begin
+ * 用于存储各种各样的SqlNode
  */
 public class MixedSqlNode implements SqlNode {
   private final List<SqlNode> contents;
@@ -29,7 +30,9 @@ public class MixedSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    //遍历sqlNode集合
     for (SqlNode sqlNode : contents) {
+      //调用sqlNode对象本身的apply方法解析sql
       sqlNode.apply(context);
     }
     return true;

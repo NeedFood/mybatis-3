@@ -37,12 +37,17 @@ public class DynamicSqlSource implements SqlSource {
 
   @Override
   public BoundSql getBoundSql(Object parameterObject) {
+    //创建DynamicContext
     DynamicContext context = new DynamicContext(configuration, parameterObject);
+    //解析SQL片段,并将解析结果存储在DynamicContext中
     rootSqlNode.apply(context);
     SqlSourceBuilder sqlSourceParser = new SqlSourceBuilder(configuration);
     Class<?> parameterType = parameterObject == null ? Object.class : parameterObject.getClass();
+    //构建StaticSQLSource,在此过程中将sql语句中的占位符#{} 替换为问号?,并为每一个占位符构建相应的ParameterMapping
     SqlSource sqlSource = sqlSourceParser.parse(context.getSql(), parameterType, context.getBindings());
+    //调用StaticSqlSource的getBoudSql获取BoundSql
     BoundSql boundSql = sqlSource.getBoundSql(parameterObject);
+    //将DynamicContext中ContextMap中的内容拷贝到boundSql中
     for (Map.Entry<String, Object> entry : context.getBindings().entrySet()) {
       boundSql.setAdditionalParameter(entry.getKey(), entry.getValue());
     }

@@ -43,6 +43,7 @@ public class XMLIncludeTransformer {
   }
 
   public void applyIncludes(Node source) {
+    //创建新的Properties对象,并将全局Properties添加到其中。避免造成全局的Properties被污染
     Properties variablesContext = new Properties();
     Properties configurationVariables = configuration.getVariables();
     if (configurationVariables != null) {
@@ -57,18 +58,31 @@ public class XMLIncludeTransformer {
    * @param variablesContext Current context for static variables with values
    */
   private void applyIncludes(Node source, final Properties variablesContext, boolean included) {
+    //⭐第一个分支
     if (source.getNodeName().equals("include")) {
+      // 获取 <sql> 节点。若 refid 中包含属性占位符 ${}，则需先将属性占位符替换为对应的属性值
       Node toInclude = findSqlFragment(getStringAttribute(source, "refid"), variablesContext);
+
+      //解析<include>的子节点<property>,并将解析结果与variablesContext融合，返回融合后的Properties
       Properties toIncludeContext = getVariablesContext(source, variablesContext);
+      /**
+       * 递归调用
+       */
       applyIncludes(toInclude, toIncludeContext, true);
+      //如果<sql>和<include>节点不在一个文档中，则从其他文档中将<sql>节点引入到<include>所在文档中
       if (toInclude.getOwnerDocument() != source.getOwnerDocument()) {
         toInclude = source.getOwnerDocument().importNode(toInclude, true);
       }
+      //将<include>节点替换为<sql>节点
       source.getParentNode().replaceChild(toInclude, source);
       while (toInclude.hasChildNodes()) {
+        //将<sql>的内容插入到<sql>
         toInclude.getParentNode().insertBefore(toInclude.getFirstChild(), toInclude);
       }
+      //前边已经将<sql>节点内容插入到dom中,现将其移除
       toInclude.getParentNode().removeChild(toInclude);
+
+    //⭐第二个分支
     } else if (source.getNodeType() == Node.ELEMENT_NODE) {
       if (included && !variablesContext.isEmpty()) {
         // replace variables in attribute values
@@ -82,6 +96,8 @@ public class XMLIncludeTransformer {
       for (int i = 0; i < children.getLength(); i++) {
         applyIncludes(children.item(i), variablesContext, included);
       }
+
+    //⭐第三个分支
     } else if (included && source.getNodeType() == Node.TEXT_NODE
         && !variablesContext.isEmpty()) {
       // replace variables in text node
@@ -90,7 +106,7 @@ public class XMLIncludeTransformer {
   }
 
   private Node findSqlFragment(String refid, Properties variables) {
-    refid = PropertyParser.parse(refid, variables);
+    refid = PropertyParser.parse(refid, variables);//解析${}
     refid = builderAssistant.applyCurrentNamespace(refid, true);
     try {
       XNode nodeToInclude = configuration.getSqlFragments().get(refid);

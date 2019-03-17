@@ -31,7 +31,9 @@ public class IfSqlNode implements SqlNode {
 
   @Override
   public boolean apply(DynamicContext context) {
+    //通过ONGL评估test表达式的结果
     if (evaluator.evaluateBoolean(test, context.getBindings())) {
+      //如果test表达式中的条件成立,则调用其他节点的apply方法进行解析
       contents.apply(context);
       return true;
     }

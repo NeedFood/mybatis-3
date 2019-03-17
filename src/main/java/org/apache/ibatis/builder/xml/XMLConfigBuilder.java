@@ -95,7 +95,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
-    parseConfiguration(parser.evalNode("*[local-name()='configuration']"));
+    parseConfiguration(parser.evalNode("configuration"));
     return configuration;
   }
 
@@ -111,7 +111,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       objectFactoryElement(root.evalNode("*[local-name()='objectFactory']"));
       objectWrapperFactoryElement(root.evalNode("*[local-name()='objectWrapperFactory']"));
       reflectorFactoryElement(root.evalNode("*[local-name()='reflectorFactory']"));
-      settingsElement(settings);
+      settingsElement(settings);//解析setting
       // read it after objectFactory and objectWrapperFactory issue #631
       environmentsElement(root.evalNode("*[local-name()='environments']"));
       databaseIdProviderElement(root.evalNode("*[local-name()='databaseIdProvider']"));
@@ -249,7 +249,7 @@ public class XMLConfigBuilder extends BaseBuilder {
     configuration.setAggressiveLazyLoading(booleanValueOf(props.getProperty("aggressiveLazyLoading"), false));
     configuration.setMultipleResultSetsEnabled(booleanValueOf(props.getProperty("multipleResultSetsEnabled"), true));
     configuration.setUseColumnLabel(booleanValueOf(props.getProperty("useColumnLabel"), true));
-    configuration.setUseGeneratedKeys(booleanValueOf(props.getProperty("useGeneratedKeys"), false));
+    configuration.setUseGeneratedKeys(booleanValueOf(props.getProperty("useGeneratedKeys"), false)); //设置useGeneratedKeys属性,该属性判断使用 JDBC 的 getGeneratedKeys 方法来取出由数据库内部生成的主键
     configuration.setDefaultExecutorType(ExecutorType.valueOf(props.getProperty("defaultExecutorType", "SIMPLE")));
     configuration.setDefaultStatementTimeout(integerValueOf(props.getProperty("defaultStatementTimeout"), null));
     configuration.setDefaultFetchSize(integerValueOf(props.getProperty("defaultFetchSize"), null));
@@ -339,16 +339,19 @@ public class XMLConfigBuilder extends BaseBuilder {
           String javaTypeName = child.getStringAttribute("javaType");
           String jdbcTypeName = child.getStringAttribute("jdbcType");
           String handlerTypeName = child.getStringAttribute("handler");
-          Class<?> javaTypeClass = resolveClass(javaTypeName);
-          JdbcType jdbcType = resolveJdbcType(jdbcTypeName);
-          Class<?> typeHandlerClass = resolveClass(handlerTypeName);
+          Class<?> javaTypeClass = resolveClass(javaTypeName); //加载javaTypeClass
+          JdbcType jdbcType = resolveJdbcType(jdbcTypeName); //转为枚举
+          Class<?> typeHandlerClass = resolveClass(handlerTypeName); //加载typeHandlerClass
           if (javaTypeClass != null) {
             if (jdbcType == null) {
+              //javaType!=null && jdbcType=null
               typeHandlerRegistry.register(javaTypeClass, typeHandlerClass);
             } else {
+              //jdbcType!=null && javaType != null
               typeHandlerRegistry.register(javaTypeClass, jdbcType, typeHandlerClass);
             }
           } else {
+            //javaType=null
             typeHandlerRegistry.register(typeHandlerClass);
           }
         }
@@ -356,6 +359,11 @@ public class XMLConfigBuilder extends BaseBuilder {
     }
   }
 
+  /**
+   * 解析xml中的mapper设置
+   * @param parent
+   * @throws Exception
+   */
   private void mapperElement(XNode parent) throws Exception {
     if (parent != null) {
       for (XNode child : parent.getChildren()) {
@@ -366,16 +374,19 @@ public class XMLConfigBuilder extends BaseBuilder {
           String resource = child.getStringAttribute("resource");
           String url = child.getStringAttribute("url");
           String mapperClass = child.getStringAttribute("class");
+          //load by resource
           if (resource != null && url == null && mapperClass == null) {
             ErrorContext.instance().resource(resource);
             InputStream inputStream = Resources.getResourceAsStream(resource);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
             mapperParser.parse();
+            //load by url
           } else if (resource == null && url != null && mapperClass == null) {
             ErrorContext.instance().resource(url);
             InputStream inputStream = Resources.getUrlAsStream(url);
             XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
             mapperParser.parse();
+            //load by class
           } else if (resource == null && url == null && mapperClass != null) {
             Class<?> mapperInterface = Resources.classForName(mapperClass);
             configuration.addMapper(mapperInterface);

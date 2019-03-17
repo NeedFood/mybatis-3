@@ -56,10 +56,11 @@ public class PropertyParser {
     return parser.parse(string);
   }
 
+  //
   private static class VariableTokenHandler implements TokenHandler {
     private final Properties variables;
-    private final boolean enableDefaultValue;
-    private final String defaultValueSeparator;
+    private final boolean enableDefaultValue; //是否使用默认值
+    private final String defaultValueSeparator; //符号分隔符
 
     private VariableTokenHandler(Properties variables) {
       this.variables = variables;

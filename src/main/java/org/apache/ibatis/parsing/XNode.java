@@ -213,6 +213,12 @@ public class XNode {
     return getStringAttribute(name, null);
   }
 
+  /**
+   * get value by name, if value is null return def
+   * @param name
+   * @param def
+   * @return
+   */
   public String getStringAttribute(String name, String def) {
     String value = attributes.getProperty(name);
     if (value == null) {

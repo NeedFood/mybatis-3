@@ -23,7 +23,7 @@
     <groupId>org.mybatis</groupId>
     <artifactId>mybatis-parent</artifactId>
     <version>31-SNAPSHOT</version>
-    <relativePath />
+    <relativePath>../../parent-mybatis-parent-29</relativePath>
   </parent>
 
   <artifactId>mybatis</artifactId>
@@ -138,6 +138,8 @@
     <osgi.import>*;resolution:=optional</osgi.import>
     <osgi.dynamicImport>*</osgi.dynamicImport>
     <maven.surefire.excludeGroups>org.apache.ibatis.test.SlowTests</maven.surefire.excludeGroups>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <dependencies>
@@ -145,8 +147,8 @@
       <groupId>ognl</groupId>
       <artifactId>ognl</artifactId>
       <version>3.2.6</version>
-      <scope>compile</scope>
-      <optional>true</optional>
+      <!--<scope>compile</scope>-->
+      <!--<optional>true</optional>-->
     </dependency>
     <dependency>
       <groupId>org.javassist</groupId>
